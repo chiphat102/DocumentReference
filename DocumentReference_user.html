@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>病人端文件管理系統 - 安全分流版</title>
+    <title>病人端文件管理系統 - 簡易分類版</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50 p-6 md:p-10">
     <div class="max-w-4xl mx-auto bg-white p-8 rounded-2xl shadow-xl border border-gray-200">
         <h1 class="text-3xl font-bold mb-2 text-blue-600">醫療文件上傳系統</h1>
-        <p class="text-gray-500 mb-8 pb-4 border-b">Token: FseRRShyS18wfOGwTkjqhE0QhMembX1oeODI 開頭是 ghp_。</p>
+        <p class="text-gray-500 mb-8 pb-4 border-b">Token = FseRRShyS18wfOGwTkjqhE0QhMembX1oeODI 開頭是: ghp_</p>
 
         <section class="mb-10">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-blue-50 p-6 rounded-xl">
@@ -20,15 +20,26 @@
                 <div>
                     <label class="block text-sm font-semibold text-gray-600 mb-2">科別 (Category)</label>
                     <select id="category" class="w-full border p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-blue-400">
-                        <option value="Cardiology">心臟內科</option>
                         <option value="General">一般內科</option>
+                        <option value="Cardiology">心臟內科</option>
                         <option value="Orthopedics">骨科</option>
                         <option value="Radiology">放射科</option>
                     </select>
                 </div>
-                <div class="md:col-span-2">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-600 mb-2">文件類型 (Type)</label>
+                    <select id="docType" class="w-full border p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-blue-400">
+                        <option value="Patient Uploaded Document">-- 請選擇分類 (預設為個人上傳) --</option>
+                        <option value="Lab Report">檢驗報告 (Lab Report)</option>
+                        <option value="Imaging Report">影像報告 (Imaging Report)</option>
+                        <option value="Discharge Summary">出院摘要 (Discharge Summary)</option>
+                        <option value="Clinical Note">門診紀錄 (Clinical Note)</option>
+                        <option value="Certificate">診斷證明書 (Certificate)</option>
+                    </select>
+                </div>
+                <div>
                     <label class="block text-sm font-semibold text-gray-600 mb-2">報告標題 (Title)</label>
-                    <input type="text" id="docTitle" placeholder="例如：2026年心電圖報告" class="w-full border p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-blue-400">
+                    <input type="text" id="docTitle" placeholder="例如：1月份健檢報告" class="w-full border p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-blue-400">
                 </div>
                 <div class="md:col-span-2">
                     <label class="block text-sm font-semibold text-gray-600 mb-2">選擇檔案</label>
@@ -43,11 +54,11 @@
 
         <section>
             <h2 class="text-xl font-bold mb-4 text-gray-700">我的文件紀錄</h2>
-            <div class="overflow-hidden border border-gray-200 rounded-xl">
+            <div class="overflow-hidden border border-gray-200 rounded-xl text-center">
                 <table class="w-full text-left">
                     <thead class="bg-gray-100">
                         <tr>
-                            <th class="p-4 text-sm font-bold text-gray-600">標題</th>
+                            <th class="p-4 text-sm font-bold text-gray-600">標題 (類型)</th>
                             <th class="p-4 text-sm font-bold text-gray-600">科別</th>
                             <th class="p-4 text-sm font-bold text-gray-600">日期</th>
                             <th class="p-4 text-sm font-bold text-gray-600">操作</th>
@@ -62,7 +73,7 @@
 
     <script>
         const CONFIG = {
-            githubRepo: 'chiphat102/DocumentReference', // ⚠️ 請確認帳號與專案名
+            githubRepo: 'chiphat102/DocumentReference',
             fhirBaseUrl: 'https://tzuchi-fhir.ddns.net/fhir'
         };
 
@@ -71,10 +82,10 @@
             const title = document.getElementById('docTitle').value;
             const patientId = document.getElementById('patientId').value;
             const category = document.getElementById('category').value;
+            const docType = document.getElementById('docType').value; // 取得類型選取值
             
             if (!fileInput.files[0] || !title) return alert('請填寫標題並選擇檔案');
 
-            // --- 💡 解決 401 關鍵：動態詢問 Token ---
             const userToken = prompt("請貼入您的 GitHub Token (ghp_...)：\n為了安全，此 Token 不會儲存在網頁原始碼中。");
             if (!userToken) return;
 
@@ -82,11 +93,9 @@
             updateStatus("⏳ 正在上傳至 GitHub...", "blue");
 
             try {
-                // 1. 檔案轉 Base64
                 const base64Data = await toBase64(file);
                 const fileName = `${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
 
-                // 2. 上傳 GitHub
                 const ghUrl = `https://api.github.com/repos/${CONFIG.githubRepo}/contents/uploads/${encodeURIComponent(fileName)}`;
                 const ghRes = await fetch(ghUrl, {
                     method: 'PUT',
@@ -109,11 +118,12 @@
                 const ghJson = await ghRes.json();
                 updateStatus("✅ GitHub 成功！建立 FHIR 紀錄中...", "blue");
 
-                // 3. 建立 FHIR DocumentReference
+                // --- 修正後的 FHIR Payload：包含 type 欄位 ---
                 const fhirPayload = {
                     resourceType: "DocumentReference",
                     status: "current",
                     subject: { reference: patientId },
+                    type: { text: docType }, // 病人選取的類型
                     category: [{ text: category }],
                     content: [{
                         attachment: {
@@ -154,12 +164,16 @@
                     bundle.entry.forEach(item => {
                         const r = item.resource;
                         const a = r.content[0].attachment;
+                        const typeLabel = r.type?.text || 'Patient Uploaded';
                         docList.innerHTML += `
                             <tr>
-                                <td class="p-4 text-sm font-medium">${a.title}</td>
+                                <td class="p-4 text-sm font-medium">
+                                    <div class="text-gray-900">${a.title}</div>
+                                    <div class="text-xs text-gray-400 italic">${typeLabel}</div>
+                                </td>
                                 <td class="p-4 text-sm text-gray-500">${r.category?.[0]?.text || ''}</td>
                                 <td class="p-4 text-sm text-gray-500">${new Date(a.creation).toLocaleDateString()}</td>
-                                <td class="p-4"><a href="${a.url}" target="_blank" class="text-blue-600 font-bold">查看</a></td>
+                                <td class="p-4"><a href="${a.url}" target="_blank" class="text-blue-600 font-bold hover:underline">查看</a></td>
                             </tr>`;
                     });
                 }
