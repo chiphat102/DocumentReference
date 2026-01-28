@@ -94,16 +94,11 @@
 * **A:** 這表示您在上傳該檔案時，**「所屬科別」** 欄位可能選錯了（例如選成一般內科）。
 * **解決方法**：請切換回「顯示所有文件」，找到該檔案，點擊「修改」並更正相關描述（或請工程師協助修正資料庫標籤）。
 
-
-
-### 關於【修改 / 刪除】
-
-**Q: 我上傳錯檔案了，可以刪除嗎？**
-
-* **A:** 系統目前僅開放醫護端進行刪除操作。請點擊「修改」按鈕旁的刪除功能。
-* *注意：刪除後，該筆醫療紀錄將無法復原。*
-
-
+**Q: 在醫護端和病人端有什麽 API？**
+* **A:**
+* 醫護端：GET /DocumentReference?category:text=... (依照科別查詢)、GET /DocumentReference?subject=... （依照病人 ID 查詢)、POST /DocumentReference （建立 DocumentReference)、PUT /DocumentReference （修改 DocumentReference)
+* 病人端：GET /DocumentReference?subject=Patient/1326 (依照病人本身的 ID 查詢)、POST /DocumentReference（建立 DocumentReference 上傳到 FHIR server, 同時把檔案儲存到 Github)
+### 關於【修改】
 
 **Q: 修改狀態後，病人端看得到改變嗎？**
 
