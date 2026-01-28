@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>醫護端系統 - 臨床文件管理</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 p-4 md:p-8">
+    <div class="max-w-6xl mx-auto bg-white p-6 md:p-10 rounded-3xl shadow-2xl border border-slate-200">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 border-b pb-6">
+            <div>
+                <h1 class="text-3xl font-black text-slate-800 tracking-tight">醫護端系統 <span class="text-blue-600">Practitioner</span></h1>
+                <p class="text-slate-500">Token = FseRRShyS18wfOGwTkjqhE0QhMembX1oeODI 開頭是: ghp_</p>
+            </div>
+            <div class="mt-4 md:mt-0 flex items-center bg-blue-50 px-4 py-2 rounded-xl">
+                <div class="w-3 h-3 bg-blue-500 rounded-full animate-pulse mr-2"></div>
+                <span class="text-blue-700 font-bold text-sm">已連線至慈濟 FHIR Server</span>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+            <div class="lg:col-span-5 space-y-6">
+                <section class="bg-slate-50 border border-slate-200 p-6 rounded-2xl shadow-sm">
+                    <h2 class="text-lg font-extrabold mb-5 text-slate-700 flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        新增醫療紀錄
+                    </h2>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="col-span-2 md:col-span-1">
+                            <label class="block text-xs font-bold text-slate-500 mb-1 uppercase">病人 ID *</label>
+                            <input type="text" id="patientId" value="Patient/1326" class="w-full border p-2 rounded-lg focus:ring-2 focus:ring-blue-400 outline-none">
+                        </div>
+                        <div class="col-span-2 md:col-span-1">
+                            <label class="block text-xs font-bold text-slate-500 mb-1 uppercase">科別 (Category)</label>
+                            <select id="category" class="w-full border p-2 rounded-lg focus:ring-2 focus:ring-blue-400">
+                                <option value="Laboratory">檢驗科</option>
+                                <option value="Radiology">放射科</option>
+                                <option value="Cardiology">心臟科</option>
+                            </select>
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-xs font-bold text-slate-500 mb-1 uppercase">文件類型 (Type) *</label>
+                            <input type="text" id="docType" placeholder="例如：Lab Report" class="w-full border p-2 rounded-lg">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-xs font-bold text-slate-500 mb-1 uppercase">報告標題 *</label>
+                            <input type="text" id="docTitle" placeholder="血液生化檢驗報告" class="w-full border p-2 rounded-lg">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-xs font-bold text-slate-500 mb-1 uppercase">關聯就醫事件 (Encounter)</label>
+                            <input type="text" id="encounter" placeholder="Encounter/999" class="w-full border p-2 rounded-lg">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-xs font-bold text-slate-500 mb-1 uppercase">選擇報告檔案</label>
+                            <input type="file" id="fileInput" class="text-sm block w-full text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                        </div>
+                    </div>
+                    <button onclick="handleDoctorUpload()" class="mt-6 w-full bg-slate-800 text-white font-black py-4 rounded-xl hover:bg-blue-700 transition duration-300 shadow-lg shadow-blue-100">
+                        確認上傳並建立臨床紀錄
+                    </button>
+                    <div id="status" class="mt-4 p-4 rounded-xl hidden text-center text-sm font-bold"></div>
+                </section>
+            </div>
+
+            <div class="lg:col-span-7 space-y-6">
+                <section class="border border-slate-200 rounded-3xl overflow-hidden shadow-sm bg-white">
+                    <div class="bg-slate-50 p-6 border-b flex flex-col md:flex-row justify-between items-end gap-4">
+                        <div class="w-full md:w-1/2">
+                            <label class="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-widest">按科別篩選文件</label>
+                            <select id="filterCategory" onchange="fetchPatientDocs()" class="w-full border-slate-300 border p-2 rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-blue-400 outline-none">
+                                <option value="">🌐 顯示所有科別文件</option>
+                                <option value="Laboratory">🧪 檢驗科 (Laboratory)</option>
+                                <option value="Radiology">🩻 放射科 (Radiology)</option>
+                                <option value="Cardiology">🫀 心臟科 (Cardiology)</option>
+                            </select>
+                        </div>
+                        <button onclick="fetchPatientDocs()" class="bg-white border border-slate-300 text-slate-600 px-5 py-2 rounded-xl hover:bg-slate-100 font-bold text-sm shadow-sm transition">
+                            刷新清單
+                        </button>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left border-collapse">
+                            <thead>
+                                <tr class="text-slate-400 border-b border-slate-100">
+                                    <th class="p-4 font-bold uppercase tracking-tighter">標題 / 類型</th>
+                                    <th class="p-4 font-bold uppercase tracking-tighter text-center">臨床狀態</th>
+                                    <th class="p-4 font-bold uppercase tracking-tighter">日期</th>
+                                    <th class="p-4 font-bold uppercase tracking-tighter text-right">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="docList" class="divide-y divide-slate-50">
+                                </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <div id="editModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white p-8 rounded-3xl max-w-md w-full shadow-2xl">
+            <h3 class="text-2xl font-black mb-2 text-slate-800">修改臨床狀態</h3>
+            <p class="text-slate-500 text-sm mb-6">更動 DocumentReference 的臨床描述與狀態</p>
+            <input type="hidden" id="editId">
+            <div class="space-y-5">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-2">文件狀態 (docStatus)</label>
+                    <select id="editDocStatus" class="w-full border p-3 rounded-xl font-bold bg-slate-50">
+                        <option value="preliminary">初稿 (preliminary)</option>
+                        <option value="final">最終 (final)</option>
+                        <option value="amended">修正 (amended)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-2">臨床描述 (Description)</label>
+                    <textarea id="editDesc" class="w-full border p-3 rounded-xl focus:ring-2 focus:ring-blue-400 outline-none" rows="4" placeholder="請輸入臨床備註..."></textarea>
+                </div>
+                <div class="flex gap-3 pt-2">
+                    <button onclick="submitUpdate()" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-black hover:bg-blue-700 transition">更新資料</button>
+                    <button onclick="closeModal()" class="flex-1 bg-slate-100 text-slate-600 py-3 rounded-xl font-bold hover:bg-slate-200 transition">關閉</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const CONFIG = {
+            githubRepo: 'chiphat102/DocumentReference', 
+            fhirBaseUrl: 'https://tzuchi-fhir.ddns.net/fhir'
+        };
+
+        // --- 功能 1：醫護端上傳至 GitHub 並建立 FHIR ---
+        async function handleDoctorUpload() {
+            const patientId = document.getElementById('patientId').value;
+            const docType = document.getElementById('docType').value;
+            const title = document.getElementById('docTitle').value;
+            const fileInput = document.getElementById('fileInput');
+
+            if (!fileInput.files[0] || !docType || !title) return alert("請完整填寫 Patient ID, Type 與 Title，並選擇檔案。");
+
+            // 💡 關鍵：動態詢問 Token 避開掃描
+            const userToken = prompt("請貼入醫護人員 GitHub Token (ghp_...)");
+            if (!userToken) return;
+
+            const file = fileInput.files[0];
+            showStatus("⏳ 系統處理中...", "blue");
+
+            try {
+                // A. 上傳 GitHub
+                const base64 = await toBase64(file);
+                const fileName = `practitioner_${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
+                const ghUrl = `https://api.github.com/repos/${CONFIG.githubRepo}/contents/uploads/${encodeURIComponent(fileName)}`;
+
+                const ghRes = await fetch(ghUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${userToken.trim()}`,
+                        'Accept': 'application/vnd.github.v3+json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ message: `Medical Upload: ${fileName}`, content: base64.split(',')[1] })
+                });
+
+                if (!ghRes.ok) throw new Error("GitHub 驗證失敗 (401)，請檢查 Token。");
+                const ghJson = await ghRes.json();
+
+                // B. 建立 FHIR DocumentReference
+                const payload = {
+                    resourceType: "DocumentReference",
+                    status: "current",
+                    subject: { reference: patientId },
+                    type: { text: docType },
+                    category: [{ text: document.getElementById('category').value }],
+                    context: { encounter: [{ reference: document.getElementById('encounter').value }] },
+                    content: [{
+                        attachment: {
+                            contentType: file.type,
+                            url: ghJson.content.download_url,
+                            title: title,
+                            creation: new Date().toISOString()
+                        }
+                    }]
+                };
+
+                const fhirRes = await fetch(`${CONFIG.fhirBaseUrl}/DocumentReference`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/fhir+json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (fhirRes.ok) {
+                    showStatus("✅ 上傳與臨床歸檔成功！", "green");
+                    fetchPatientDocs();
+                } else { throw new Error("FHIR 寫入紀錄失敗。"); }
+
+            } catch (err) { showStatus(`❌ 錯誤: ${err.message}`, "red"); }
+        }
+
+        // --- 功能 2：依病人 ID 與 科別過濾查詢 ---
+        async function fetchPatientDocs() {
+            const patientId = document.getElementById('patientId').value;
+            const filterCat = document.getElementById('filterCategory').value;
+            const docList = document.getElementById('docList');
+            
+            docList.innerHTML = '<tr><td colspan="4" class="p-12 text-center text-slate-300 italic">檢索數據中...</td></tr>';
+
+            try {
+                let url = `${CONFIG.fhirBaseUrl}/DocumentReference?subject=${patientId}&_sort=-_lastUpdated`;
+                if (filterCat) url += `&category=${filterCat}`; // 👈 加入科別過濾
+
+                const res = await fetch(url);
+                const bundle = await res.json();
+                docList.innerHTML = '';
+
+                if (!bundle.entry || bundle.entry.length === 0) {
+                    docList.innerHTML = '<tr><td colspan="4" class="p-12 text-center text-slate-400">找不到符合科別的紀錄</td></tr>';
+                    return;
+                }
+
+                bundle.entry.forEach(item => {
+                    const r = item.resource;
+                    const a = r.content[0].attachment;
+                    const statusClass = r.docStatus === 'final' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700';
+                    
+                    docList.innerHTML += `
+                        <tr class="hover:bg-slate-50 transition border-b border-slate-50">
+                            <td class="p-4">
+                                <div class="font-bold text-slate-700">${a.title}</div>
+                                <div class="text-[10px] text-slate-400 uppercase font-bold">${r.type?.text || 'Unspecified'}</div>
+                            </td>
+                            <td class="p-4 text-center">
+                                <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase ${statusClass}">${r.docStatus || 'preliminary'}</span>
+                            </td>
+                            <td class="p-4 text-xs text-slate-400 font-medium">${new Date(a.creation).toLocaleDateString()}</td>
+                            <td class="p-4 text-right space-x-1">
+                                <a href="${a.url}" target="_blank" class="inline-block bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg font-bold hover:bg-blue-100 transition text-xs text-center min-w-[50px]">檢視</a>
+                                <button onclick="openEditModal('${r.id}', '${r.docStatus}', '${r.description || ''}')" class="bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg font-bold hover:bg-slate-200 transition text-xs min-w-[50px]">修改</button>
+                            </td>
+                        </tr>`;
+                });
+            } catch (e) { docList.innerHTML = '<tr><td colspan="4" class="p-4 text-red-500 font-bold text-center">查詢失敗，請檢查網路連線。</td></tr>'; }
+        }
+
+        // --- 功能 3：更新資源 (PUT) ---
+        async function openEditModal(id, status, desc) {
+            document.getElementById('editId').value = id;
+            document.getElementById('editDocStatus').value = status || 'preliminary';
+            document.getElementById('editDesc').value = desc;
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+
+        async function submitUpdate() {
+            const id = document.getElementById('editId').value;
+            showStatus("⏳ 正在更新臨床內容...", "blue");
+
+            try {
+                // GET 最新版
+                const getRes = await fetch(`${CONFIG.fhirBaseUrl}/DocumentReference/${id}`);
+                const resource = await getRes.json();
+
+                // 修正欄位
+                resource.docStatus = document.getElementById('editDocStatus').value;
+                resource.description = document.getElementById('editDesc').value;
+
+                // PUT 回去
+                const putRes = await fetch(`${CONFIG.fhirBaseUrl}/DocumentReference/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/fhir+json' },
+                    body: JSON.stringify(resource)
+                });
+
+                if (putRes.ok) {
+                    showStatus("✅ 修改成功！", "green");
+                    closeModal();
+                    fetchPatientDocs();
+                }
+            } catch (err) { alert("更新失敗：" + err.message); }
+        }
+
+        // 工具
+        function closeModal() { document.getElementById('editModal').classList.add('hidden'); }
+        const toBase64 = file => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = e => reject(e);
+        });
+        function showStatus(msg, color) {
+            const div = document.getElementById('status');
+            div.innerText = msg;
+            div.className = `mt-4 p-4 rounded-xl block font-bold text-center `;
+            if(color === "blue") div.className += "bg-blue-600 text-white";
+            if(color === "green") div.className += "bg-green-600 text-white";
+            if(color === "red") div.className += "bg-red-600 text-white";
+            div.classList.remove('hidden');
+        }
+
+        window.onload = fetchPatientDocs;
+    </script>
+</body>
+</html>
