@@ -84,22 +84,32 @@
             const file = fileInput.files[0];
 
             try {
-                // A. 上傳至 GitHub
-                const base64Content = await toBase64(file);
+                // 【修正重點 1】確保 CONFIG.githubRepo 格式為 "帳號/專案名"
+                // 例如：'my-github-id/my-medical-repo'
                 const fileName = `${Date.now()}_${file.name}`;
-                const ghUrl = `https://api.github.com/repos/${CONFIG.githubRepo}/contents/uploads/${fileName}`;
-
+                
+                // 確保這裡的 URL 包含 repos/${CONFIG.githubRepo}
+                const ghUrl = `https://api.github.com/repos/${CONFIG.githubRepo}/contents/uploads/${encodeURIComponent(fileName)}`;
+        
                 const ghRes = await fetch(ghUrl, {
                     method: 'PUT',
                     headers: {
-                        'Authorization': `token ${CONFIG.githubToken}`,
+                        // 【修正重點 2】確保 Token 格式正確，建議加上 Accept 標頭
+                        'Authorization': `Bearer ${CONFIG.githubToken}`, // 建議用 Bearer 或 token
+                        'Accept': 'application/vnd.github.v3+json',
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
                         message: `Upload ${fileName}`,
-                        content: base64Content.split(',')[1]
+                        content: base64Content.split(',')[1] // 移除 base64 前綴
                     })
                 });
+        
+                // 檢查回應狀態
+                if (!ghRes.ok) {
+                    const errorData = await ghRes.json();
+                    throw new Error(`GitHub 錯誤: ${errorData.message}`);
+                }
                 const ghData = await ghRes.json();
                 const downloadUrl = ghData.content.download_url;
 
@@ -176,3 +186,4 @@
 </body>
 
 </html>
+
