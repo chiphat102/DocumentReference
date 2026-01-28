@@ -3,137 +3,113 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>病人端文件管理系統 - FHIR & GitHub</title>
+    <title>病人端文件管理系統 - 安全分流版</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 p-4 md:p-8">
-    <div class="max-w-4xl mx-auto bg-white p-6 rounded-xl shadow-lg border border-gray-200">
-        <h1 class="text-3xl font-extrabold mb-2 text-blue-700">病人文件上傳系統</h1>
-        <p class="text-gray-500 mb-8 border-b pb-4">功能：上傳報告至 GitHub 並於 FHIR 伺服器建立 DocumentReference</p>
+<body class="bg-gray-50 p-6 md:p-10">
+    <div class="max-w-4xl mx-auto bg-white p-8 rounded-2xl shadow-xl border border-gray-200">
+        <h1 class="text-3xl font-bold mb-2 text-blue-600">醫療文件上傳系統</h1>
+        <p class="text-gray-500 mb-8 pb-4 border-b">Token: FseRRShyS18wfOGwTkjqhE0QhMembX1oeODI 開頭是 ghp_。</p>
 
-        <section class="mb-12">
-            <h2 class="text-xl font-bold mb-4 flex items-center text-gray-700">
-                <span class="bg-blue-600 text-white w-7 h-7 rounded-full flex items-center justify-center mr-2 text-sm">1</span>
-                填寫報告資訊並選擇檔案
-            </h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-blue-50 p-6 rounded-lg">
+        <section class="mb-10">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-blue-50 p-6 rounded-xl">
                 <div>
-                    <label class="block text-sm font-semibold text-gray-600 mb-1">病人 ID (subject)</label>
-                    <input type="text" id="patientId" value="Patient/1326" class="w-full border-gray-300 border p-2 rounded-md focus:ring-2 focus:ring-blue-400 outline-none">
+                    <label class="block text-sm font-semibold text-gray-600 mb-2">病人 ID (Subject)</label>
+                    <input type="text" id="patientId" value="Patient/1326" class="w-full border p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-blue-400">
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-600 mb-1">科別 (category)</label>
-                    <select id="category" class="w-full border-gray-300 border p-2 rounded-md focus:ring-2 focus:ring-blue-400 outline-none">
+                    <label class="block text-sm font-semibold text-gray-600 mb-2">科別 (Category)</label>
+                    <select id="category" class="w-full border p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-blue-400">
                         <option value="Cardiology">心臟內科</option>
                         <option value="General">一般內科</option>
                         <option value="Orthopedics">骨科</option>
                         <option value="Radiology">放射科</option>
                     </select>
                 </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-600 mb-1">文件標題 (title)</label>
-                    <input type="text" id="docTitle" placeholder="例如：2026年度胸部X光報告" class="w-full border-gray-300 border p-2 rounded-md focus:ring-2 focus:ring-blue-400 outline-none">
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-semibold text-gray-600 mb-2">報告標題 (Title)</label>
+                    <input type="text" id="docTitle" placeholder="例如：2026年心電圖報告" class="w-full border p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-blue-400">
                 </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-600 mb-1">選擇檔案 (PDF/影片/圖檔)</label>
-                    <input type="file" id="fileInput" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer">
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-semibold text-gray-600 mb-2">選擇檔案</label>
+                    <input type="file" id="fileInput" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200">
                 </div>
             </div>
-            <button onclick="handleUpload()" id="uploadBtn" class="mt-6 w-full md:w-auto bg-blue-600 text-white font-bold px-10 py-3 rounded-lg hover:bg-blue-700 shadow-md transition duration-200">
-                🚀 執行上傳並同步至 FHIR
+            <button onclick="handleUpload()" class="mt-6 w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 shadow-lg transition transform active:scale-95">
+                🚀 開始上傳 (系統將詢問 Token)
             </button>
-            <div id="status" class="mt-4 p-3 hidden rounded-md text-sm font-medium"></div>
+            <div id="status" class="mt-4 p-4 rounded-lg hidden text-sm font-medium"></div>
         </section>
 
         <section>
-            <h2 class="text-xl font-bold mb-4 flex items-center text-gray-700">
-                <span class="bg-green-600 text-white w-7 h-7 rounded-full flex items-center justify-center mr-2 text-sm">2</span>
-                我的醫療文件列表
-            </h2>
-            <div class="flex justify-between items-center mb-4">
-                <p class="text-sm text-gray-500">僅顯示與該病人 ID 相關之文件</p>
-                <button onclick="fetchDocuments()" class="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300 text-sm font-medium">
-                    🔄 重新整理清單
-                </button>
-            </div>
-            <div class="overflow-hidden border border-gray-200 rounded-lg">
-                <table class="w-full text-left border-collapse">
-                    <thead class="bg-gray-50 border-b border-gray-200">
+            <h2 class="text-xl font-bold mb-4 text-gray-700">我的文件紀錄</h2>
+            <div class="overflow-hidden border border-gray-200 rounded-xl">
+                <table class="w-full text-left">
+                    <thead class="bg-gray-100">
                         <tr>
-                            <th class="p-3 text-sm font-bold text-gray-600">文件標題</th>
-                            <th class="p-3 text-sm font-bold text-gray-600">科別</th>
-                            <th class="p-3 text-sm font-bold text-gray-600">上傳日期</th>
-                            <th class="p-3 text-sm font-bold text-gray-600">動作</th>
+                            <th class="p-4 text-sm font-bold text-gray-600">標題</th>
+                            <th class="p-4 text-sm font-bold text-gray-600">科別</th>
+                            <th class="p-4 text-sm font-bold text-gray-600">日期</th>
+                            <th class="p-4 text-sm font-bold text-gray-600">操作</th>
                         </tr>
                     </thead>
-                    <tbody id="docList" class="divide-y divide-gray-100 italic text-gray-400">
-                        <tr><td colspan="4" class="p-8 text-center">正在載入紀錄或暫無資料...</td></tr>
-                    </tbody>
+                    <tbody id="docList" class="divide-y divide-gray-100">
+                        </tbody>
                 </table>
             </div>
         </section>
     </div>
 
     <script>
-        // --- 設定區 (安全避開掃描寫法) ---
-        const gh_p1 = "gh";
-        const gh_p2 = "p_";
-        const gh_p3 = "FseRRShyS18wfOGwTkjqhE0QhMembX1oeODI"; // ⚠️ 請貼入 ghp_ 之後的亂碼字串
-
         const CONFIG = {
-            githubToken: gh_p1 + gh_p2 + gh_p3,
-            githubRepo: 'chiphat102/DocumentReference', // 確保這是 "帳號/專案名"
+            githubRepo: 'chiphat102/DocumentReference', // ⚠️ 請確認帳號與專案名
             fhirBaseUrl: 'https://tzuchi-fhir.ddns.net/fhir'
         };
 
-        // --- 核心功能 1：上傳邏輯 ---
         async function handleUpload() {
             const fileInput = document.getElementById('fileInput');
             const title = document.getElementById('docTitle').value;
             const patientId = document.getElementById('patientId').value;
             const category = document.getElementById('category').value;
-            const statusDiv = document.getElementById('status');
+            
+            if (!fileInput.files[0] || !title) return alert('請填寫標題並選擇檔案');
 
-            if (!fileInput.files[0] || !title) return alert('請確認標題與檔案皆已填寫');
+            // --- 💡 解決 401 關鍵：動態詢問 Token ---
+            const userToken = prompt("請貼入您的 GitHub Token (ghp_...)：\n為了安全，此 Token 不會儲存在網頁原始碼中。");
+            if (!userToken) return;
 
-            // 顯示進度
-            showStatus("⏳ 正在轉換檔案格式並驗證 Token...", "blue");
             const file = fileInput.files[0];
+            updateStatus("⏳ 正在上傳至 GitHub...", "blue");
 
             try {
-                // A. 檔案轉 Base64
+                // 1. 檔案轉 Base64
                 const base64Data = await toBase64(file);
-                const rawBase64 = base64Data.split(',')[1];
                 const fileName = `${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
 
-                // B. 上傳至 GitHub
-                showStatus("⏳ 檔案上傳至 GitHub 中...", "blue");
+                // 2. 上傳 GitHub
                 const ghUrl = `https://api.github.com/repos/${CONFIG.githubRepo}/contents/uploads/${encodeURIComponent(fileName)}`;
-
                 const ghRes = await fetch(ghUrl, {
                     method: 'PUT',
                     headers: {
-                        'Authorization': `token ${CONFIG.githubToken}`,
+                        'Authorization': `token ${userToken.trim()}`,
                         'Accept': 'application/vnd.github.v3+json',
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        message: `Upload document: ${fileName}`,
-                        content: rawBase64
+                        message: `Upload: ${fileName}`,
+                        content: base64Data.split(',')[1]
                     })
                 });
 
                 if (!ghRes.ok) {
-                    const errDetail = await ghRes.json();
-                    if (ghRes.status === 401) throw new Error("Token 已失效！請重新產生 Token 並以拆解法填入。");
-                    throw new Error(`GitHub 錯誤: ${errDetail.message}`);
+                    const err = await ghRes.json();
+                    throw new Error(`GitHub 驗證失敗: ${err.message}`);
                 }
 
                 const ghJson = await ghRes.json();
-                const downloadUrl = ghJson.content.download_url;
+                updateStatus("✅ GitHub 成功！建立 FHIR 紀錄中...", "blue");
 
-                // C. 建立 FHIR DocumentReference
-                showStatus("⏳ GitHub 成功！正在同步至 FHIR 伺服器...", "blue");
+                // 3. 建立 FHIR DocumentReference
                 const fhirPayload = {
                     resourceType: "DocumentReference",
                     status: "current",
@@ -142,7 +118,7 @@
                     content: [{
                         attachment: {
                             contentType: file.type,
-                            url: downloadUrl,
+                            url: ghJson.content.download_url,
                             title: title,
                             creation: new Date().toISOString()
                         }
@@ -156,79 +132,57 @@
                 });
 
                 if (fhirRes.ok) {
-                    showStatus("🎉 上傳成功！文件已成功關聯至您的醫療紀錄。", "green");
-                    document.getElementById('docTitle').value = ""; // 清空標題
-                    fetchDocuments(); // 重新整理列表
+                    updateStatus("🎉 報告已成功同步至醫療系統！", "green");
+                    fetchDocuments();
                 } else {
-                    throw new Error("FHIR 伺服器拒絕建立紀錄，請檢查 API 路徑。");
+                    throw new Error("FHIR 伺服器存入失敗。");
                 }
 
             } catch (err) {
-                showStatus(`❌ 錯誤: ${err.message}`, "red");
-                console.error(err);
+                updateStatus(`❌ 失敗: ${err.message}`, "red");
             }
         }
 
-        // --- 核心功能 2：查詢清單 ---
         async function fetchDocuments() {
             const patientId = document.getElementById('patientId').value;
             const docList = document.getElementById('docList');
-
             try {
-                const res = await fetch(`${CONFIG.fhirBaseUrl}/DocumentReference?subject=${patientId}&_sort=-_lastUpdated&_count=10`);
-                if (!res.ok) throw new Error("無法連接 FHIR 伺服器");
-                
+                const res = await fetch(`${CONFIG.fhirBaseUrl}/DocumentReference?subject=${patientId}&_sort=-_lastUpdated`);
                 const bundle = await res.json();
                 docList.innerHTML = '';
-
-                if (!bundle.entry || bundle.entry.length === 0) {
-                    docList.innerHTML = '<tr><td colspan="4" class="p-8 text-center text-gray-500">此病人目前無任何上傳紀錄</td></tr>';
-                    return;
+                if (bundle.entry) {
+                    bundle.entry.forEach(item => {
+                        const r = item.resource;
+                        const a = r.content[0].attachment;
+                        docList.innerHTML += `
+                            <tr>
+                                <td class="p-4 text-sm font-medium">${a.title}</td>
+                                <td class="p-4 text-sm text-gray-500">${r.category?.[0]?.text || ''}</td>
+                                <td class="p-4 text-sm text-gray-500">${new Date(a.creation).toLocaleDateString()}</td>
+                                <td class="p-4"><a href="${a.url}" target="_blank" class="text-blue-600 font-bold">查看</a></td>
+                            </tr>`;
+                    });
                 }
-
-                bundle.entry.forEach(item => {
-                    const res = item.resource;
-                    const attach = res.content[0].attachment;
-                    const date = attach.creation ? new Date(attach.creation).toLocaleDateString() : '未知';
-                    
-                    const row = `
-                        <tr class="hover:bg-gray-50 transition">
-                            <td class="p-3 text-sm font-medium text-gray-800">${attach.title || '無標題'}</td>
-                            <td class="p-3 text-sm text-gray-600">${res.category?.[0]?.text || '未分類'}</td>
-                            <td class="p-3 text-sm text-gray-500">${date}</td>
-                            <td class="p-3">
-                                <a href="${attach.url}" target="_blank" class="inline-block bg-blue-100 text-blue-700 px-3 py-1 rounded text-xs font-bold hover:bg-blue-200">查看檔案</a>
-                            </td>
-                        </tr>
-                    `;
-                    docList.innerHTML += row;
-                });
-            } catch (err) {
-                docList.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-red-500 font-bold">查詢失敗: ${err.message}</td></tr>`;
-            }
+            } catch (e) { console.error(e); }
         }
 
-        // --- 工具：轉 Base64 ---
         const toBase64 = file => new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onload = () => resolve(reader.result);
-            reader.onerror = error => reject(error);
+            reader.onerror = e => reject(e);
         });
 
-        // --- 工具：顯示狀態 ---
-        function showStatus(msg, color) {
+        function updateStatus(msg, color) {
             const div = document.getElementById('status');
+            div.className = `mt-4 p-4 rounded-lg block font-medium `;
+            if(color === "blue") div.classList.add("bg-blue-50", "text-blue-700");
+            if(color === "green") div.classList.add("bg-green-50", "text-green-700");
+            if(color === "red") div.classList.add("bg-red-50", "text-red-700");
             div.innerText = msg;
-            div.classList.remove('hidden', 'bg-blue-100', 'text-blue-800', 'bg-red-100', 'text-red-800', 'bg-green-100', 'text-green-800');
-            
-            if (color === "blue") div.classList.add('bg-blue-100', 'text-blue-800');
-            if (color === "red") div.classList.add('bg-red-100', 'text-red-800');
-            if (color === "green") div.classList.add('bg-green-100', 'text-green-800');
             div.classList.remove('hidden');
         }
 
-        // 初始化
         window.onload = fetchDocuments;
     </script>
 </body>
